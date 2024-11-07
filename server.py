@@ -1,6 +1,8 @@
 import socket
 import psycopg2 # type: ignore
 from dotenv import load_dotenv # type: ignore
+from sqlalchemy.orm import sessionmaker # type: ignore
+from models.models import User, engine
 import os
 
 load_dotenv()
@@ -8,37 +10,21 @@ load_dotenv()
 HOST = '127.0.0.1'
 PORT = 8080
 
-DB_HOST = os.getenv('DB_HOST')
-DB_NAME = os.getenv('DB_NAME')
-DB_USER = os.getenv('DB_USER')
-DB_PASSWORD = os.getenv('DB_PASSWORD')
-
 # TCP socket
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_socket.bind((HOST, PORT))
 server_socket.listen(5)
 print(f"Serving HTTP on {HOST}:{PORT}")
 
-try:
-    database_connection = psycopg2.connect(
-        host=DB_HOST,
-        database=DB_NAME,
-        user=DB_USER,
-        password=DB_PASSWORD
-    )
-    cursor = database_connection.cursor()
-    print("Connected to the database.")
-except Exception as e:
-    print("Error connecting to the database:", e)
+SessionLocal = sessionmaker(bind=engine)
 
 def handle_request(client_connection):
+    session = SessionLocal()
     try:
-        # Receive the request from the client
         request = client_connection.recv(1024).decode()
         print("Request received:\n", request)
 
-        cursor.execute("SELECT * FROM company.department LIMIT 1;")
-        result = cursor.fetchone() 
+        result = session.query(User).first()
         response_content = f"<html><body><h1>Data from DB: {result}</h1></body></html>"
         response = f"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n{response_content}"
         
@@ -47,6 +33,7 @@ def handle_request(client_connection):
         print("Error handling request:", e)
     finally:
         client_connection.close()
+        session.close()
 try:
     while True:
         client_connection, client_address = server_socket.accept()
