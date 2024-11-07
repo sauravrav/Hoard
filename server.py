@@ -1,9 +1,7 @@
 import socket
-import psycopg2 # type: ignore
-from dotenv import load_dotenv # type: ignore
-from sqlalchemy.orm import sessionmaker # type: ignore
+from dotenv import load_dotenv
+from sqlalchemy.orm import sessionmaker
 from models.models import User, engine
-import os
 
 load_dotenv()
 
@@ -42,6 +40,4 @@ try:
 except KeyboardInterrupt:
     print("\nServer shutting down.")
 finally:
-    cursor.close()
-    database_connection.close()
     server_socket.close()
