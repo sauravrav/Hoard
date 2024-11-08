@@ -1,7 +1,8 @@
 import socket
 from dotenv import load_dotenv
 from sqlalchemy.orm import sessionmaker
-from models.models import User, engine
+from models.models import  engine
+from models.User import User
 
 load_dotenv()
 
