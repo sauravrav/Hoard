@@ -11,3 +11,7 @@ engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(bind=engine)
 
 from models.User import User
+from models.Account import Account
+from models.BankUser import BankUser
+from models.Bank import Bank
+from models.Transaction import Transaction
