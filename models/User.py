@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String
 from .models import Base
+from sqlalchemy.orm import relationship
 
 class User(Base):
     __tablename__ = 'users'
@@ -8,3 +9,6 @@ class User(Base):
     last_name = Column(String)
     email = Column(String, unique=True)
     role = Column(String)
+    
+    accounts = relationship("Account", back_populates="user")
+    bank_users = relationship("BankUser", back_populates="user")

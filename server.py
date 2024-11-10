@@ -1,8 +1,7 @@
 import socket
 from dotenv import load_dotenv
-from sqlalchemy.orm import sessionmaker
-from models.models import  engine
 from models.User import User
+from models.models import SessionLocal
 
 load_dotenv()
 
@@ -15,7 +14,6 @@ server_socket.bind((HOST, PORT))
 server_socket.listen(5)
 print(f"Serving HTTP on {HOST}:{PORT}")
 
-SessionLocal = sessionmaker(bind=engine)
 
 def handle_request(client_connection):
     session = SessionLocal()
