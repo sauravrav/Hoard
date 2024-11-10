@@ -16,8 +16,16 @@ def transfer_funds(source_account_id, target_account_id, amount):
         sender_account = session.query(Account).filter_by(id=source_account_id).with_for_update().one()
         recipient_account = session.query(Account).filter_by(id=target_account_id).with_for_update().one()
 
+        MIN_BALANCE_SAVINGS = 50
+        MIN_BALANCE_CURRENT = 100
+
         if sender_account.balance < amount:
             return "Insufficient funds in the sender's account."
+
+        min_balance = MIN_BALANCE_SAVINGS if sender_account.account_type == "savings" else MIN_BALANCE_CURRENT
+
+        if (sender_account.balance - amount) < min_balance:
+            return f"Transfer denied. Sender must maintain a minimum balance of {min_balance}."
 
         sender_account.balance -= amount
         recipient_account.balance += amount
