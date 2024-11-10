@@ -43,8 +43,8 @@ def transfer_funds(source_account_id, target_account_id, amount):
         session.close()
 
 try:
-    user1_savings_account_id = get_account_by_user_and_type(user_id=1, account_type="savings")
-    user2_savings_account_id = get_account_by_user_and_type(user_id=2, account_type="savings")
-    transfer_funds(user1_savings_account_id, user2_savings_account_id, 100)
+    user1_savings_account_id = get_account_by_user_and_type(user_id=2, account_type="savings")
+    user2_savings_account_id = get_account_by_user_and_type(user_id=1, account_type="savings")
+    transfer_funds(user1_savings_account_id, user2_savings_account_id, 3000)
 except Exception as e:
     print(f"Error during transfer: {e}")
