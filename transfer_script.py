@@ -34,7 +34,7 @@ def transfer_funds(source_account_id, target_account_id, amount):
             source_account_id=sender_account.id,
             target_account_id=recipient_account.id,
             amount=amount,
-            # description=f"Transfer from account {source_account_id} to account {target_account_id}"
+            description=f"Transfer from account ID {source_account_id} to account ID {target_account_id}"
         )
         session.add(transaction)
 

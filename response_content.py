@@ -27,9 +27,9 @@ def response_content(transaction_data=None, bank_user_data=None, error_message=N
     """
     # .format(form_display="none" if error_message else "block")
 
-    transaction_table = "<h2>Transaction History</h2><table border='1'><tr><th>ID</th><th>Amount</th><th>Date</th></tr>"
+    transaction_table = "<h2>Transaction History</h2><table border='1'><tr><th>ID</th><th>Amount</th><th>Date</th><th>Details</th></tr>"
     for transaction in transaction_data:
-        transaction_table += f"<tr><td>{transaction.id}</td><td>{transaction.amount}</td><td>{transaction.timestamp}</td></tr>"
+        transaction_table += f"<tr><td>{transaction.id}</td><td>{transaction.amount}</td><td>{transaction.timestamp}</td><td>{transaction.description}</td></tr>"
     transaction_table += "</table>"
 
     bank_user_table = """
