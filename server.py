@@ -24,7 +24,7 @@ def handle_request(client_connection):
     try:
         request = client_connection.recv(1024).decode()
         print("Request received:\n", request)
-        error_message = None
+        # error_message = None
 
         if request.startswith("POST"):
             headers, body = request.split("\r\n\r\n", 1)
@@ -34,11 +34,7 @@ def handle_request(client_connection):
             target_account_id = int(form_data.get("target_account_id", [0])[0])
             amount = float(form_data.get("amount", [0])[0])
 
-            try:
-                transfer_funds(source_account_id, target_account_id, amount)
-            except Exception as e:
-                print("hey it is an error")
-                error_message = str(e)
+            message = transfer_funds(source_account_id, target_account_id, amount)
 
             transaction_data = session.query(Transaction).all()
             bank_user_data = session.execute(text("""
@@ -49,7 +45,7 @@ def handle_request(client_connection):
                 JOIN users u ON a.user_id = u.id
             """)).fetchall()
 
-            response = f"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n{response_content(transaction_data, bank_user_data, error_message)}"
+            response = f"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n{response_content(transaction_data, bank_user_data, message)}"
 
         else:
             transaction_data = session.query(Transaction).all()

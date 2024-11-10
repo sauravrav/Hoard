@@ -17,7 +17,7 @@ def transfer_funds(source_account_id, target_account_id, amount):
         recipient_account = session.query(Account).filter_by(id=target_account_id).with_for_update().one()
 
         if sender_account.balance < amount:
-            raise ValueError("Insufficient funds in the sender's account.")
+            return "Insufficient funds in the sender's account."
 
         sender_account.balance -= amount
         recipient_account.balance += amount
@@ -32,13 +32,14 @@ def transfer_funds(source_account_id, target_account_id, amount):
 
         session.commit()
         print("Transfer completed successfully.")
+        return None
 
     except exc.SQLAlchemyError as e:
         session.rollback()
-        print(f"Database error occurred: {e}")
+        return f"Database error occurred: {e}"
     except Exception as e:
         session.rollback()
-        print(f"An error occurred: {e}")
+        return f"An error occurred: {e}"
     finally:
         session.close()
 
