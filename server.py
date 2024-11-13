@@ -19,6 +19,14 @@ server_socket.bind((HOST, PORT))
 server_socket.listen(5)
 print(f"Serving HTTP on {HOST}:{PORT}")
 
+user_account_join = """
+                SELECT a.id as account_id,b.name AS bank_name, u.first_name AS user_first_name, 
+                       u.last_name AS user_last_name, a.account_type, a.balance
+                FROM banks b
+                JOIN accounts a ON b.id = a.bank_id
+                JOIN users u ON a.user_id = u.id
+                WHERE a.account_type = 'savings'
+            """
 def handle_request(client_connection):
     session = SessionLocal()
     try:
@@ -37,25 +45,13 @@ def handle_request(client_connection):
             message = transfer_funds(source_account_id, target_account_id, amount)
 
             transaction_data = session.query(Transaction).all()
-            bank_user_data = session.execute(text("""
-                SELECT a.id as account_id,b.name AS bank_name, u.first_name AS user_first_name, 
-                       u.last_name AS user_last_name, a.account_type, a.balance
-                FROM banks b
-                JOIN accounts a ON b.id = a.bank_id
-                JOIN users u ON a.user_id = u.id
-            """)).fetchall()
+            bank_user_data = session.execute(text(user_account_join)).fetchall()
 
             response = f"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n{response_content(transaction_data, bank_user_data, message)}"
 
         else:
             transaction_data = session.query(Transaction).all()
-            bank_user_data = session.execute(text("""
-                SELECT a.id as account_id, b.name AS bank_name, u.first_name AS user_first_name, 
-                       u.last_name AS user_last_name, a.account_type, a.balance
-                FROM banks b
-                JOIN accounts a ON b.id = a.bank_id
-                JOIN users u ON a.user_id = u.id
-            """)).fetchall()
+            bank_user_data = session.execute(text(user_account_join)).fetchall()
 
             response = f"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n{response_content(transaction_data, bank_user_data)}\r\n\r\n"
 
