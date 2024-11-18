@@ -29,8 +29,24 @@ def login(email: str = Form(...), password: str = Form(...), db: Session = Depen
         } for transaction in recent_transactions
     ]
 
-    associated_banks = db.query(Bank).join(BankUser).filter(BankUser.user_id == user.id).all()
-    banks_data = [{"id": bank.id, "name": bank.name, "location": bank.location} for bank in associated_banks]
+    bank_accounts = db.query(
+        Bank.id.label("bank_id"),
+        Bank.name.label("bank_name"),
+        Bank.location.label("location"),
+        Account.id.label("account_id"),
+        Account.account_type.label("account_type"),
+        Account.balance.label("balance")
+    ).join(Account, Bank.id == Account.bank_id).filter(Account.user_id == user.id).all()
+    banks_data = [
+        {
+            "bank_id": bank.bank_id,
+            "bank_name": bank.bank_name,
+            "location": bank.location,
+            "account_id": bank.account_id,
+            "account_type": bank.account_type,
+            "balance": bank.balance
+        } for bank in bank_accounts
+    ]
 
     return {
         "message": "Login successful!",
