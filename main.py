@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from routers import transaction_router, login_router, purchase_router
+from routers import transaction_router, login_router, purchase_router, customer_router
 from models.models import Base, engine
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -17,6 +17,7 @@ app.add_middleware(
 app.include_router(transaction_router.router, prefix="/transactions", tags=["transactions"])
 app.include_router(login_router.router, prefix="/auth", tags=["auth"])
 app.include_router(purchase_router.router, tags=["purchase"])
+app.include_router(customer_router.router, tags=["customer"])
 
 @app.get("/")
 async def root():
