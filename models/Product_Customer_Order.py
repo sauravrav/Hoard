@@ -20,5 +20,6 @@ class Order(Base):
     product_id = Column(Integer, ForeignKey('products.id'), nullable=False)
     customer_id = Column(Integer, ForeignKey('customers.id'), nullable=False)
     quantity = Column(Integer, nullable=False)
+    shipping_address = Column(String, nullable=False)
     product = relationship("Product")
     customer = relationship("Customer")
