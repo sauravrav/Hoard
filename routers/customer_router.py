@@ -1,5 +1,4 @@
-
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Form
 from sqlalchemy.orm import Session
 from models.models import get_db, Customer, Order
 
@@ -16,3 +15,14 @@ def update_address(customer_id: int, new_address: str, db: Session = Depends(get
 
     db.commit()
     return {"message": "Address updated successfully"}
+
+@router.post("/login")
+def login(email: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
+    user = db.query(Customer).filter(Customer.email == email).first()
+    if not user or user.password != password:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    return {
+        "message": "Login successful!",
+        "token": user.email,
+        "password": user.password
+    }
