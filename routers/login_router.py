@@ -51,6 +51,7 @@ def login(email: str = Form(...), password: str = Form(...), db: Session = Depen
     return {
         "message": "Login successful!",
         "token": user.email,
+        "password": user.password,
         "user": {
             "name": f"{user.first_name} {user.last_name}",
             "email": user.email,

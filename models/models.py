@@ -22,3 +22,4 @@ from models.Account import Account
 from models.BankUser import BankUser
 from models.Bank import Bank
 from models.Transaction import Transaction
+from models.Product_Customer_Order import Product, Customer, Order
