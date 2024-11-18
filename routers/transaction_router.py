@@ -14,12 +14,14 @@ class TransferRequest(BaseModel):
 @router.post("/transfer")
 async def transfer(request: TransferRequest, db: Session = Depends(get_db)):
     try:
-        result = transfer_funds(
-            db, 
-            sender_account=request.sender_account,
-            receiver_account=request.receiver_account,
-            amount=request.amount
+        error_message = transfer_funds(
+            source_account_id=request.sender_account,
+            target_account_id=request.receiver_account,
+            amount=request.amount,
         )
-        return {"message": "Transfer successful", "result": result}
+        if error_message:
+            raise HTTPException(status_code=400, detail=error_message)
+        
+        return {"message": "Transfer successful"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
