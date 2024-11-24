@@ -1,62 +1,103 @@
 from fastapi import APIRouter, HTTPException, Depends, Form
 from sqlalchemy.orm import Session
-from sqlalchemy import and_
-from models.models import get_db, User, Account, Transaction, Bank, BankUser
+from sqlalchemy import text
+from models.models import get_db
 
 router = APIRouter()
 
 @router.post("/login")
 def login(email: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == email).first()
-    if not user or user.password != password:
-        raise HTTPException(status_code=401, detail="Invalid email or password")
+    try:
+        user_query = text("SELECT * FROM users WHERE email = :email")
+        user = db.execute(user_query, {"email": email}).fetchone()
 
-    savings_account = db.query(Account).filter(
-        and_(Account.user_id == user.id, Account.account_type == "savings")
-    ).first()
-    savings_balance = savings_account.balance if savings_account else 0
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    recent_transactions = db.query(Transaction).filter(
-        (Transaction.source_account_id == savings_account.id) | 
-        (Transaction.target_account_id == savings_account.id)
-    ).order_by(Transaction.timestamp.desc()).limit(5).all()
-    transactions_data = [
-        {
-            "id": transaction.id,
-            "type": "credit" if transaction.target_account_id == savings_account.id else "debit",
-            "amount": transaction.amount,
-            "timestamp": transaction.timestamp
-        } for transaction in recent_transactions
-    ]
+        user_dict = dict(user._mapping)
 
-    bank_accounts = db.query(
-        Bank.id.label("bank_id"),
-        Bank.name.label("bank_name"),
-        Bank.location.label("location"),
-        Account.id.label("account_id"),
-        Account.account_type.label("account_type"),
-        Account.balance.label("balance")
-    ).join(Account, Bank.id == Account.bank_id).filter(Account.user_id == user.id).all()
-    banks_data = [
-        {
-            "bank_id": bank.bank_id,
-            "bank_name": bank.bank_name,
-            "location": bank.location,
-            "account_id": bank.account_id,
-            "account_type": bank.account_type,
-            "balance": bank.balance
-        } for bank in bank_accounts
-    ]
+        if user_dict["password"] != password:
+            raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    return {
-        "message": "Login successful!",
-        "token": user.email,
-        "password": user.password,
-        "user": {
-            "name": f"{user.first_name} {user.last_name}",
-            "email": user.email,
-            "savings_balance": savings_balance,
-            "recent_transactions": transactions_data,
-            "banks": banks_data,
+        savings_query = text("""
+            SELECT id, balance 
+            FROM accounts 
+            WHERE user_id = :user_id AND account_type = 'savings'
+            LIMIT 1
+        """)
+        savings_account = db.execute(savings_query, {"user_id": user_dict["id"]}).fetchone()
+        if savings_account:
+            savings_account_dict = dict(savings_account._mapping)
+            savings_balance = savings_account_dict["balance"]
+            savings_account_id = savings_account_dict["id"]
+        else:
+            savings_balance = 0
+            savings_account_id = None
+
+        transactions_data = []
+        if savings_account_id:
+            transactions_query = text("""
+                SELECT id, 
+                       CASE 
+                           WHEN target_account_id = :savings_account_id THEN 'credit' 
+                           ELSE 'debit' 
+                       END AS type, 
+                       amount, 
+                       timestamp 
+                FROM transactions 
+                WHERE source_account_id = :savings_account_id OR target_account_id = :savings_account_id
+                ORDER BY timestamp DESC
+                LIMIT 5
+            """)
+        recent_transactions = db.execute(
+            transactions_query, {"savings_account_id": savings_account_id}
+        ).fetchall()
+
+        transactions_data = [
+            {
+                "id": transaction[0],
+                "type": transaction[1],
+                "amount": transaction[2],
+                "timestamp": transaction[3]
+            }
+            for transaction in recent_transactions
+        ]
+
+        banks_query = text("""
+            SELECT b.id AS bank_id, 
+                   b.name AS bank_name, 
+                   b.location, 
+                   a.id AS account_id, 
+                   a.account_type, 
+                   a.balance
+            FROM banks b
+            JOIN accounts a ON b.id = a.bank_id
+            WHERE a.user_id = :user_id
+        """)
+        bank_accounts = db.execute(banks_query, {"user_id": user_dict["id"]}).fetchall()
+        banks_data = [
+            {
+                "bank_id": bank[0],
+                "bank_name": bank[1],
+                "location": bank[2],
+                "account_id": bank[3],
+                "account_type": bank[4],
+                "balance": bank[5]
+            } for bank in bank_accounts
+        ]
+        breakpoint()
+
+        return {
+            "message": "Login successful!",
+            "token": user_dict["email"],
+            "user": {
+                "name": f"{user_dict['first_name']} {user_dict['last_name']}",
+                "email": user_dict["email"],
+                "savings_balance": savings_balance,
+                "recent_transactions": transactions_data,
+                "banks": banks_data,
+            }
         }
-    }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
