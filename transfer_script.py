@@ -1,18 +1,10 @@
 from models.models import Account, Transaction
 from models.models import SessionLocal
 from sqlalchemy import exc
-
-session = SessionLocal()
-
-def get_account_by_user_and_type(user_id, account_type):
-    account = session.query(Account).filter_by(user_id=user_id, account_type=account_type).first()
-    if not account:
-        raise ValueError(f"No {account_type} account found for user ID {user_id}")
-    return account.id
-
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
+session = SessionLocal()
 def transfer_funds(source_account_id, target_account_id, amount):
     """Transfer funds between accounts using raw SQL."""
     try:
@@ -34,7 +26,6 @@ def transfer_funds(source_account_id, target_account_id, amount):
 
         if not recipient_account:
             return "Recipient's account not found."
-
         if sender_account.balance < amount:
             return "Insufficient funds in the sender's account."
 
@@ -76,10 +67,3 @@ def transfer_funds(source_account_id, target_account_id, amount):
         return f"An error occurred: {e}"
     finally:
         session.close()
-
-# try:
-#     user1_savings_account_id = get_account_by_user_and_type(user_id=2, account_type="savings")
-#     user2_savings_account_id = get_account_by_user_and_type(user_id=1, account_type="savings")
-#     transfer_funds(user1_savings_account_id, user2_savings_account_id, 3000)
-# except Exception as e:
-#     print(f"Error during transfer: {e}")
