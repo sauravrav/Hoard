@@ -6,7 +6,6 @@ from sqlalchemy.exc import SQLAlchemyError
 
 session = SessionLocal()
 def transfer_funds(source_account_id, target_account_id, amount):
-    """Transfer funds between accounts using raw SQL."""
     try:
         MIN_BALANCE_SAVINGS = 50
         MIN_BALANCE_CURRENT = 100
@@ -45,8 +44,8 @@ def transfer_funds(source_account_id, target_account_id, amount):
         session.execute(update_recipient_query, {"amount": amount, "target_account_id": target_account_id})
 
         insert_transaction_query = text("""
-            INSERT INTO transactions (source_account_id, target_account_id, amount, description)
-            VALUES (:source_account_id, :target_account_id, :amount, :description)
+            INSERT INTO transactions (source_account_id, target_account_id, amount, description, timestamp)
+            VALUES (:source_account_id, :target_account_id, :amount, :description, NOW())
         """)
         session.execute(insert_transaction_query, {
             "source_account_id": source_account_id,

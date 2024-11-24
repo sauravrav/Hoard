@@ -19,40 +19,42 @@ def login(email: str = Form(...), password: str = Form(...), db: Session = Depen
         if user_dict["password"] != password:
             raise HTTPException(status_code=401, detail="Invalid email or password")
 
-        savings_query = text("""
-            SELECT id, balance 
+        accounts_query = text("""
+            SELECT id 
             FROM accounts 
-            WHERE user_id = :user_id AND account_type = 'savings'
-            LIMIT 1
+            WHERE user_id = :user_id
         """)
-        savings_account = db.execute(savings_query, {"user_id": user_dict["id"]}).fetchone()
-        if savings_account:
-            savings_account_dict = dict(savings_account._mapping)
-            savings_balance = savings_account_dict["balance"]
-            savings_account_id = savings_account_dict["id"]
-        else:
-            savings_balance = 0
-            savings_account_id = None
+        user_accounts = db.execute(accounts_query, {"user_id": user_dict["id"]}).fetchall()
+        account_ids = [account[0] for account in user_accounts]
 
-        transactions_data = []
-        if savings_account_id:
-            transactions_query = text("""
-                SELECT id, 
-                       CASE 
-                           WHEN target_account_id = :savings_account_id THEN 'credit' 
-                           ELSE 'debit' 
-                       END AS type, 
-                       amount, 
-                       timestamp 
-                FROM transactions 
-                WHERE source_account_id = :savings_account_id OR target_account_id = :savings_account_id
-                ORDER BY timestamp DESC
-                LIMIT 5
-            """)
-        recent_transactions = db.execute(
-            transactions_query, {"savings_account_id": savings_account_id}
-        ).fetchall()
+        if not account_ids:
+            return {
+                "message": "Login successful!",
+                "token": user_dict["email"],
+                "user": {
+                    "name": f"{user_dict['first_name']} {user_dict['last_name']}",
+                    "email": user_dict["email"],
+                    "recent_transactions": [],
+                    "banks": []
+                }
+            }
 
+        transactions_query = text(f"""
+            SELECT id, 
+                   CASE 
+                       WHEN target_account_id IN :account_ids THEN 'credit' 
+                       ELSE 'debit' 
+                   END AS type, 
+                   amount, 
+                   timestamp 
+            FROM transactions 
+            WHERE source_account_id IN :account_ids OR target_account_id IN :account_ids
+            ORDER BY timestamp DESC
+            LIMIT 5
+        """)
+        recent_transactions = db.execute(transactions_query, {"account_ids": tuple(account_ids)}).fetchall()
+        breakpoint()
+        
         transactions_data = [
             {
                 "id": transaction[0],
@@ -75,6 +77,7 @@ def login(email: str = Form(...), password: str = Form(...), db: Session = Depen
             WHERE a.user_id = :user_id
         """)
         bank_accounts = db.execute(banks_query, {"user_id": user_dict["id"]}).fetchall()
+
         banks_data = [
             {
                 "bank_id": bank[0],
@@ -83,8 +86,10 @@ def login(email: str = Form(...), password: str = Form(...), db: Session = Depen
                 "account_id": bank[3],
                 "account_type": bank[4],
                 "balance": bank[5]
-            } for bank in bank_accounts
+            }
+            for bank in bank_accounts
         ]
+
         return {
             "message": "Login successful!",
             "token": user_dict["email"],
@@ -92,7 +97,6 @@ def login(email: str = Form(...), password: str = Form(...), db: Session = Depen
             "user": {
                 "name": f"{user_dict['first_name']} {user_dict['last_name']}",
                 "email": user_dict["email"],
-                "savings_balance": savings_balance,
                 "recent_transactions": transactions_data,
                 "banks": banks_data,
             }
