@@ -85,11 +85,10 @@ def login(email: str = Form(...), password: str = Form(...), db: Session = Depen
                 "balance": bank[5]
             } for bank in bank_accounts
         ]
-        breakpoint()
-
         return {
             "message": "Login successful!",
             "token": user_dict["email"],
+            "password": user_dict["password"],
             "user": {
                 "name": f"{user_dict['first_name']} {user_dict['last_name']}",
                 "email": user_dict["email"],

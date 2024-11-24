@@ -10,14 +10,30 @@ def get_account_by_user_and_type(user_id, account_type):
         raise ValueError(f"No {account_type} account found for user ID {user_id}")
     return account.id
 
-def transfer_funds(source_account_id, target_account_id, amount):
-    """Transfer funds between accounts."""
-    try:
-        sender_account = session.query(Account).filter_by(id=source_account_id).with_for_update().one()
-        recipient_account = session.query(Account).filter_by(id=target_account_id).with_for_update().one()
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
+def transfer_funds(source_account_id, target_account_id, amount):
+    """Transfer funds between accounts using raw SQL."""
+    try:
         MIN_BALANCE_SAVINGS = 50
         MIN_BALANCE_CURRENT = 100
+
+        sender_account_query = text("""
+            SELECT * FROM accounts WHERE id = :source_account_id FOR UPDATE
+        """)
+        sender_account = session.execute(sender_account_query, {"source_account_id": source_account_id}).fetchone()
+
+        if not sender_account:
+            return "Sender's account not found."
+
+        recipient_account_query = text("""
+            SELECT * FROM accounts WHERE id = :target_account_id FOR UPDATE
+        """)
+        recipient_account = session.execute(recipient_account_query, {"target_account_id": target_account_id}).fetchone()
+
+        if not recipient_account:
+            return "Recipient's account not found."
 
         if sender_account.balance < amount:
             return "Insufficient funds in the sender's account."
@@ -27,22 +43,32 @@ def transfer_funds(source_account_id, target_account_id, amount):
         if (sender_account.balance - amount) < min_balance:
             return f"Transfer denied. Sender must maintain a minimum balance of {min_balance}."
 
-        sender_account.balance -= amount
-        recipient_account.balance += amount
+        update_sender_query = text("""
+            UPDATE accounts SET balance = balance - :amount WHERE id = :source_account_id
+        """)
+        session.execute(update_sender_query, {"amount": amount, "source_account_id": source_account_id})
 
-        transaction = Transaction(
-            source_account_id=sender_account.id,
-            target_account_id=recipient_account.id,
-            amount=amount,
-            description=f"Transfer of {amount} from account ID {source_account_id} to account ID {target_account_id}"
-        )
-        session.add(transaction)
+        update_recipient_query = text("""
+            UPDATE accounts SET balance = balance + :amount WHERE id = :target_account_id
+        """)
+        session.execute(update_recipient_query, {"amount": amount, "target_account_id": target_account_id})
 
+        insert_transaction_query = text("""
+            INSERT INTO transactions (source_account_id, target_account_id, amount, description)
+            VALUES (:source_account_id, :target_account_id, :amount, :description)
+        """)
+        session.execute(insert_transaction_query, {
+            "source_account_id": source_account_id,
+            "target_account_id": target_account_id,
+            "amount": amount,
+            "description": f"Transfer of {amount} from account ID {source_account_id} to account ID {target_account_id}"
+        })
+        
         session.commit()
         print("Transfer completed successfully.")
         return None
 
-    except exc.SQLAlchemyError as e:
+    except SQLAlchemyError as e:
         session.rollback()
         return f"Database error occurred: {e}"
     except Exception as e:
