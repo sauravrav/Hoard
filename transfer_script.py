@@ -1,4 +1,4 @@
-from models.models import Account, Transaction
+import time
 from models.models import SessionLocal
 from sqlalchemy import exc
 from sqlalchemy import text
@@ -64,5 +64,43 @@ def transfer_funds(source_account_id, target_account_id, amount):
     except Exception as e:
         session.rollback()
         return f"An error occurred: {e}"
+    finally:
+        session.close()
+
+def transfer_funds_isolation(source_account_id, target_account_id, amount, isolation_level=None):
+    session = SessionLocal()
+    try:
+        if isolation_level:
+            session.connection(execution_options={"isolation_level": isolation_level})
+
+        MIN_BALANCE = 1000
+        sender_query = text("SELECT * FROM accounts WHERE id = :source_account_id FOR UPDATE")
+        recipient_query = text("SELECT * FROM accounts WHERE id = :target_account_id FOR UPDATE")
+        
+        sender_account = session.execute(sender_query, {"source_account_id": source_account_id}).fetchone()
+        if not sender_account:
+            return "Sender account not found."
+
+        recipient_account = session.execute(recipient_query, {"target_account_id": target_account_id}).fetchone()
+        if not recipient_account:
+            return "Recipient account not found."
+
+        if sender_account.balance < amount:
+            return "Insufficient funds."
+        if sender_account.balance - amount < MIN_BALANCE:
+            return f"Minimum balance of ${MIN_BALANCE} must be maintained."
+
+        time.sleep(5)
+
+        update_sender = text("UPDATE accounts SET balance = balance - :amount WHERE id = :source_account_id")
+        update_recipient = text("UPDATE accounts SET balance = balance + :amount WHERE id = :target_account_id")
+        session.execute(update_sender, {"amount": amount, "source_account_id": source_account_id})
+        session.execute(update_recipient, {"amount": amount, "target_account_id": target_account_id})
+        session.commit()
+
+        return None
+    except SQLAlchemyError as e:
+        session.rollback()
+        return f"Error: {str(e)}"
     finally:
         session.close()

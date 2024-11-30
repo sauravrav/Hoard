@@ -53,7 +53,7 @@ def login(email: str = Form(...), password: str = Form(...), db: Session = Depen
             LIMIT 5
         """)
         recent_transactions = db.execute(transactions_query, {"account_ids": tuple(account_ids)}).fetchall()
-        breakpoint()
+        # breakpoint()
         
         transactions_data = [
             {
