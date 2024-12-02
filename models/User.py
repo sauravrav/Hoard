@@ -9,7 +9,7 @@ class User(Base):
     last_name = Column(String)
     email = Column(String, unique=True)
     role = Column(String)
-    password = Column(String)
+    encrypted_password = Column(String)
     
     accounts = relationship("Account", back_populates="user")
     bank_users = relationship("BankUser", back_populates="user")

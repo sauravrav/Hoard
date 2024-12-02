@@ -16,7 +16,7 @@ def login(email: str = Form(...), password: str = Form(...), db: Session = Depen
 
         user_dict = dict(user._mapping)
 
-        if user_dict["password"] != password:
+        if user_dict["encrypted_password"] != password:
             raise HTTPException(status_code=401, detail="Invalid email or password")
 
         accounts_query = text("""
