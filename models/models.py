@@ -10,6 +10,12 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(bind=engine)
 
+def get_session(isolation_level=None):
+    if isolation_level:
+        connection = engine.connect().execution_options(isolation_level=isolation_level)
+        return SessionLocal(bind=connection)
+    else:
+        return SessionLocal()
 def get_db():
     db = SessionLocal()
     try:
