@@ -41,11 +41,10 @@ def purchase_product(request: PurchaseRequest, db: Session = Depends(get_db)):
                 update_orders_query = text("""
                     UPDATE orders SET shipping_address = :new_address WHERE customer_id = :customer_id
                 """)
-                db.execute(update_orders_query, {"new_address": request.new_address, "customer_id": request.customer_id})
+                db.execute(update_orders_query, {"new_address": request.new_address, "customer_id": request.customer_id})  
 
             if product.quantity < request.quantity:
                 raise HTTPException(status_code=400, detail="Insufficient product quantity")
-
             update_product_query = text("""
                 UPDATE products SET quantity = quantity - :quantity WHERE id = :product_id
             """)
@@ -66,6 +65,8 @@ def purchase_product(request: PurchaseRequest, db: Session = Depends(get_db)):
 
         return {"message": "Purchase successful"}
 
+    except HTTPException as e:
+        raise e
     except Exception as e:
         db.rollback()
         logger.error(f"Error during purchase: {e}")
